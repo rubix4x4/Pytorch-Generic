@@ -2,6 +2,8 @@ import roboticstoolbox as rtb
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib import cm
+from matplotlib.colors import Normalize
 import time
 plt.ion()
 
@@ -50,9 +52,9 @@ class ThreeDBin:
         else:
             return False
        
-Xspan = np.linspace(-1,1,6)
-Yspan = np.linspace(-1,1,6)
-Zspan = np.linspace(0,1,11)
+Xspan = np.linspace(-1.5,1.5,21)
+Yspan = np.linspace(-1.5,1.5,21)
+Zspan = np.linspace(0,1.5,11)
 
 WorkspaceBins = []
 for i in range(len(Xspan)-1):
@@ -87,7 +89,7 @@ env = pandarobo.plot(pandarobo.qz, block=False)  # env is the environment object
 # Extract the 3D axes from the environment
 ax = env.ax  # Access the Axes3D object from the environment
 
-def add_cuboid(ax, origin, size, alphaval):
+def add_cuboid(ax, origin, size, value, vmax):
     o = np.array(origin)
     l = size[0]
     w = size[1]
@@ -101,9 +103,14 @@ def add_cuboid(ax, origin, size, alphaval):
              [vertices[j] for j in [2, 3, 7, 6]],  # opposite side face
              [vertices[j] for j in [0, 3, 7, 4]],  # front face
              [vertices[j] for j in [1, 2, 6, 5]]]  # back face
-
+    vmin = 0
+    vmax = 1
+    norm = Normalize(vmin=vmin, vmax = vmax)
+    colormap = cm.get_cmap('turbo')
+    color = colormap(norm(value))
     # Add the cuboid to the plot with full opacity
-    ax.add_collection3d(Poly3DCollection(faces, facecolors='red', linewidths=1, edgecolors='r', alpha=.1 * alphaval))
+    #ax.add_collection3d(Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors=color, alpha=0.2, ))
+    ax.add_collection3d(Poly3DCollection(faces, facecolors=color, alpha=0.2, ))
 
 JointTLims = np.array([100,100,100,100,100,100,100])
 UnitWrench = [0, 0, -1, 0, 0,0]
@@ -138,15 +145,19 @@ for bins in WorkspaceBins:
     else:
         origin = [bins.Xrange[0] ,bins.Yrange[0], bins.Zrange[0]]
         size = [bins.Xrange[1]-bins.Xrange[0], bins.Yrange[1]-bins.Yrange[0], bins.Zrange[1]-bins.Zrange[0]]
-        alpha = 1 - ((HighestManipGlobal - bins.MaxManip)/HighestManipGlobal)
-        add_cuboid(ax, origin, size, alpha)
+        value = (bins.MaxManip)/HighestManipGlobal
+        add_cuboid(ax, origin, size, value, HighestManipGlobal)
 finishT = time.time()
 print("Time Elapsed = ", finishT-startT)
 
+ax.set_xlim([-1.5, 1.5])
+ax.set_ylim([-1.5, 1.5])
+ax.set_zlim([0, 1.5])
 # Force a refresh of the plot
 plt.draw()
 plt.pause(1)  # Ensure the figure refreshes
 
 # Keep the plot open for interaction
+plt.ioff()
 plt.show()
 print("End")

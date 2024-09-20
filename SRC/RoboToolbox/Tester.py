@@ -1,6 +1,8 @@
 import roboticstoolbox as rtb
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm
+from matplotlib.colors import Normalize
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 plt.ion()
 # Example: Plot a Puma 560 robot using the Peter Corke toolbox
@@ -12,7 +14,7 @@ env = robot.plot(robot.qz, block=False)  # env is the environment object
 ax = env.ax  # Access the Axes3D object from the environment
 
 # Function to add a 3D rectangle (cuboid) to the plot
-def add_cuboid(ax, origin, size):
+def add_cuboid(ax, origin, size, vmin = 1, vmax = 1, value = 0.1):
     o = np.array(origin)
     l, w, h = size
     vertices = np.array([[0, 0, 0], [l, 0, 0], [l, w, 0], [0, w, 0],  # bottom face
@@ -26,7 +28,10 @@ def add_cuboid(ax, origin, size):
              [vertices[j] for j in [1, 2, 6, 5]]]  # back face
 
     # Add the cuboid to the plot with full opacity
-    ax.add_collection3d(Poly3DCollection(faces, facecolors='red', linewidths=1, edgecolors='r', alpha=1.0))
+    norm = Normalize(vmin=vmin, vmax = vmax)
+    colormap = cm.get_cmap('turbo')
+    color = colormap(norm(value))
+    ax.add_collection3d(Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors='r', alpha=0.2))
 
 # Add a cuboid to the plot
 add_cuboid(ax, origin=(0.5, 0.5, 0), size=(0.2, 0.2, 0.7))
