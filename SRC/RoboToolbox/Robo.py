@@ -115,6 +115,8 @@ def add_cuboid(ax, origin, size, value, vmax):
 JointTLims = np.array([100,100,100,100,100,100,100])
 UnitWrench = [0, 0, -1, 0, 0,0]
 HighestManipGlobal = 0
+
+
 print("Begin Filtering Bins")
 startT = time.time()
 for bins in WorkspaceBins:
@@ -136,28 +138,37 @@ for bins in WorkspaceBins:
 finishT = time.time()
 print("Time Elapsed = ", finishT-startT)
 
-# Iterate Through Bins, plot cuboids
-print("Begin Plotting")
-startT = time.time()
-for bins in WorkspaceBins:
-    if not bins.Qpos:
-        continue
-    else:
-        origin = [bins.Xrange[0] ,bins.Yrange[0], bins.Zrange[0]]
-        size = [bins.Xrange[1]-bins.Xrange[0], bins.Yrange[1]-bins.Yrange[0], bins.Zrange[1]-bins.Zrange[0]]
-        value = (bins.MaxManip)/HighestManipGlobal
-        add_cuboid(ax, origin, size, value, HighestManipGlobal)
-finishT = time.time()
-print("Time Elapsed = ", finishT-startT)
 
-ax.set_xlim([-1.5, 1.5])
-ax.set_ylim([-1.5, 1.5])
-ax.set_zlim([0, 1.5])
-# Force a refresh of the plot
-plt.draw()
-plt.pause(1)  # Ensure the figure refreshes
 
-# Keep the plot open for interaction
-plt.ioff()
-plt.show()
+for Xval in XRange:
+    # Iterate Through Bins, plot cuboids
+    print("Begin Plotting")
+    startT = time.time()
+    for bins in WorkspaceBins:
+        if not bins.Qpos:
+            continue
+        
+        else:
+            origin = [bins.Xrange[0] ,bins.Yrange[0], bins.Zrange[0]]
+            size = [bins.Xrange[1]-bins.Xrange[0], bins.Yrange[1]-bins.Yrange[0], bins.Zrange[1]-bins.Zrange[0]]
+            value = (bins.MaxManip)/HighestManipGlobal
+            add_cuboid(ax, origin, size, value, HighestManipGlobal)
+    finishT = time.time()
+    print("Time Elapsed = ", finishT-startT)
+
+    ax.set_xlim([-1.5, 1.5])
+    ax.set_ylim([-1.5, 1.5])
+    ax.set_zlim([0, 1.5])
+    # Force a refresh of the plot
+    plt.draw()
+    plt.pause(1)  # Ensure the figure refreshes
+
+    # Keep the plot open for interaction
+    plt.ioff()
+    plt.show()
+
+
+
+
+
 print("End")
