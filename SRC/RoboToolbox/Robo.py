@@ -22,18 +22,23 @@ JointLims = np.transpose(JointLims)
 
 # Create Joint Grid Positon Array
 # region
-J0Range = np.linspace( JointLims[0][0], JointLims[0][1], 5)
-J1Range = np.linspace( JointLims[1][0], JointLims[1][1], 5)
-J2Range = np.linspace( JointLims[2][0], JointLims[2][1], 5)
-J3Range = np.linspace( JointLims[3][0], JointLims[3][1], 5)
-J4Range = np.linspace( JointLims[4][0], JointLims[4][1], 5)
-J5Range = np.linspace( JointLims[5][0], JointLims[5][1], 5)
-J6Range = np.linspace( JointLims[6][0], JointLims[6][1], 5)
+
+#J0Range = np.linspace( JointLims[0][0], JointLims[0][1], 5)
+
+J0Range = 0 # Let's assume base is fixed
+J1Range = np.linspace( JointLims[1][0], JointLims[1][1], 10)
+J2Range = np.linspace( JointLims[2][0], JointLims[2][1], 10)
+J3Range = np.linspace( JointLims[3][0], JointLims[3][1], 10)
+J4Range = np.linspace( JointLims[4][0], JointLims[4][1], 10)
+J5Range = np.linspace( JointLims[5][0], JointLims[5][1], 10)
+J6Range = np.linspace( JointLims[6][0], JointLims[6][1], 10)
 Pos = np.array(np.meshgrid(J0Range,J1Range,J2Range,J3Range,J4Range,J5Range,J6Range)).T.reshape(-1, 7)
 # endregion
 
 # Create set of position bins in 3D space (Each)
 # region
+
+# Class/Structure corresponding to a given workspace bin
 class ThreeDBin:
     def __init__ (self,Xrange,Yrange,Zrange):
         self.Xrange = Xrange
@@ -51,7 +56,9 @@ class ThreeDBin:
             return True
         else:
             return False
-       
+
+# Create Workspace Bins    
+# region   
 Xspan = np.linspace(-1.5,1.5,21)
 Yspan = np.linspace(-1.5,1.5,21)
 Zspan = np.linspace(0,1.5,11)
@@ -69,9 +76,10 @@ for i in range(len(Xspan)-1):
             ZRange = [Zspan[k], Zspan[k+1]]
             Temp = ThreeDBin(XRange, YRange,ZRange)
             WorkspaceBins.append(Temp)
+# endregion
             
 # Loop Through Joint Position Combinations, bin into workspace bins based on end effector location
-
+# region
 print ("Start Eval Loop")
 startT = time.time()
 for X in Pos:
@@ -82,13 +90,33 @@ for X in Pos:
             break
 finishT = time.time()
 print("Time Elapsed = ", finishT-startT)
+# endregion
 
+# Loop Through bins, saving candidate configurations
+# region
+print("Begin Filtering Bins")
+startT = time.time()
+for bins in WorkspaceBins:
+    if not bins.Qpos:
+        continue
+    else:
+        MaxManipBin = bins.MaxManip
+        QCandidate = Qrest
+        # Find Max Manipulability in Bin
+        for Config in bins.Qpos:
+            # ForceCalcs
+            Manip = pandarobo.manipulability(Config)
+            if MaxManipBin < Manip:
+                MaxManipBin = Manip
+                QCandidate = Config
+                bins.MaxManip = Manip
+                bins.Qbest = Config
+        HighestManipGlobal = max(HighestManipGlobal,MaxManipBin)
+finishT = time.time()
+print("Time Elapsed = ", finishT-startT)
+# endregion
 
-# Plot the robot in a specific configuration
-env = pandarobo.plot(pandarobo.qz, block=False)  # env is the environment object
-# Extract the 3D axes from the environment
-ax = env.ax  # Access the Axes3D object from the environment
-
+# Plotting Utility Function
 def add_cuboid(ax, origin, size, value, vmax):
     o = np.array(origin)
     l = size[0]
@@ -112,63 +140,42 @@ def add_cuboid(ax, origin, size, value, vmax):
     #ax.add_collection3d(Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors=color, alpha=0.2, ))
     ax.add_collection3d(Poly3DCollection(faces, facecolors=color, alpha=0.2, ))
 
-JointTLims = np.array([100,100,100,100,100,100,100])
-UnitWrench = [0, 0, -1, 0, 0,0]
-HighestManipGlobal = 0
-
-
-print("Begin Filtering Bins")
+# Plot Robot and Workspace Slices
+# region
+print("Begin Plotting")
 startT = time.time()
-for bins in WorkspaceBins:
-    if not bins.Qpos:
-        continue
-    else:
-        MaxManipBin = bins.MaxManip
-        QCandidate = Qrest
-        # Find Max Manipulability in Bin
-        for Config in bins.Qpos:
-            # ForceCalcs
-            Manip = pandarobo.manipulability(Config)
-            if MaxManipBin < Manip:
-                MaxManipBin = Manip
-                QCandidate = Config
-                bins.MaxManip = Manip
-                bins.Qbest = Config
-        HighestManipGlobal = max(HighestManipGlobal,MaxManipBin)
-finishT = time.time()
-print("Time Elapsed = ", finishT-startT)
 
-
-
-for Xval in XRange:
+for Xval in Xspan:
+    # Plot the robot in a specific configuration
+    env = pandarobo.plot(pandarobo.qr, block=False)  # env is the environment object
+    
+    # Extract the 3D axes from the environment
+    ax = env.ax  # Access the Axes3D object from the environment
+    
     # Iterate Through Bins, plot cuboids
-    print("Begin Plotting")
-    startT = time.time()
+
     for bins in WorkspaceBins:
-        if not bins.Qpos:
-            continue
-        
-        else:
+        if (bins.Qpos and bins.Xrange[0] == Xval):
             origin = [bins.Xrange[0] ,bins.Yrange[0], bins.Zrange[0]]
             size = [bins.Xrange[1]-bins.Xrange[0], bins.Yrange[1]-bins.Yrange[0], bins.Zrange[1]-bins.Zrange[0]]
             value = (bins.MaxManip)/HighestManipGlobal
             add_cuboid(ax, origin, size, value, HighestManipGlobal)
+    
     finishT = time.time()
-    print("Time Elapsed = ", finishT-startT)
-
+    
+    # Set figure axes
     ax.set_xlim([-1.5, 1.5])
     ax.set_ylim([-1.5, 1.5])
     ax.set_zlim([0, 1.5])
+    
     # Force a refresh of the plot
     plt.draw()
     plt.pause(1)  # Ensure the figure refreshes
-
-    # Keep the plot open for interaction
-    plt.ioff()
     plt.show()
+    filename = f'SRC\RoboToolbox\RoboData\Data' + str(round(Xval,2)) + 'slice.png'
+    plt.savefig(filename)
 
+print("Time Elapsed = ", finishT-startT)
 
-
-
-
+# endregion
 print("End")
