@@ -2,6 +2,5 @@ SRC/FlowersCNNChatGPT.py
 Data/
 LIB/StableDiff/
 SRC/ComfyUI
-SRC/Stable Diffusion/DnDImageGen.py
 SRC/StableDiffusion/DnDImageGen.py
 RoboToolbox/Tester.py
