@@ -158,20 +158,22 @@ for Xval in Xspan:
             value = (bins.MaxManip)/HighestManipGlobal
             add_cuboid(ax, origin, size, value, HighestManipGlobal)
     
-    finishT = time.time()
+
     
     # Set figure axes
     ax.set_xlim([-1.5, 1.5])
     ax.set_ylim([-1.5, 1.5])
     ax.set_zlim([0, 1.5])
-    
+    ax.view_init
     # Force a refresh of the plot
     plt.draw()
     plt.pause(1)  # Ensure the figure refreshes
     plt.show()
     filename = f'SRC\RoboToolbox\RoboData\Data' + str(round(Xval,2)) + 'slice.png'
+    ax.view_init()
     plt.savefig(filename)
 
+finishT = time.time()
 print("Time Elapsed = ", finishT-startT)
 
 # endregion

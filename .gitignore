@@ -3,4 +3,6 @@ Data/
 LIB/StableDiff/
 SRC/ComfyUI
 SRC/StableDiffusion/DnDImageGen.py
+RoboToolbox/RoboData/
+RoboToolbox/RoboData/IK_DataSet/
 RoboToolbox/Tester.py
