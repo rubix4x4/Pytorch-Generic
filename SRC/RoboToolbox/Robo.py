@@ -35,9 +35,6 @@ J6Range = np.linspace( JointLims[6][0], JointLims[6][1], 10)
 Pos = np.array(np.meshgrid(J0Range,J1Range,J2Range,J3Range,J4Range,J5Range,J6Range)).T.reshape(-1, 7)
 # endregion
 
-# Create set of position bins in 3D space (Each)
-# region
-
 # Class/Structure corresponding to a given workspace bin
 class ThreeDBin:
     def __init__ (self,Xrange,Yrange,Zrange):
