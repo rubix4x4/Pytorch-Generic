@@ -33,24 +33,76 @@ class PointSpace:
 Xspan = np.linspace(-1.5,1.5,31)
 Yspan = np.linspace(-1.5,1.5,31)
 Zspan = np.linspace(0,1.5,16)
-
-# Sparse Span
-# Xspan = np.linspace(-1.5,1.5,11)
-# Yspan = np.linspace(-1.5,1.5,11)
-# Zspan = np.linspace(0,1.5,6)
-
 WorkspaceGrid = np.array(np.meshgrid(Xspan, Yspan, Zspan)).T.reshape(-1, 3)
 WorkspaceNodes = []
+
+# Sparse Span
+XspanSparse = np.linspace(-1.5,1.5,11)
+YspanSparse = np.linspace(-1.5,1.5,11)
+ZspanSparse = np.linspace(0,1.5,6)
+SparseGrid = np.array(np.meshgrid(XspanSparse, YspanSparse, ZspanSparse)).T.reshape(-1, 3)
+SparseNodes = []
 # endregion
 
-# IK Solve
+# IK Solve Sparse
+# region
+print ("Start Sparse IK Solve Loop")
+startT = time.time()
+for X in SparseGrid:
+    Counter = 0  # set counter = 0
+    SetManip = 0 # Set manipulability of set = 0
+    NewNode = []                # Make Empty
+    NewNode = PointSpace(X)     # Create Temp Node
+    while Counter < 3: # Repeate each point 5 times trying to find highest manipulable option
+        Tep = [[1,0,0,X[0]] , [0,1,0,X[1]] , [0,0,1,X[2]] , [0,0,0,1]]
+        solution = pandarobo.ik_LM(Tep,joint_limits = True)
+        if solution[1] == 1:            
+            Configuration = solution[0]
+            Manip = pandarobo.manipulability(solution[0])
+            if Manip > SetManip:                    # If the solution exists and the manipulability of the solution is better than our previous best
+                NewNode.MaxManip = Manip            # save manipulability value
+                SetManip = Manip                    # Manip becomes highest for the set
+                NewNode.ConfigList = Configuration  # overwrite confugration to ConfigList
+                NewNode.BestSol = solution          # overwrite solution   
+        Counter += 1
+        
+    if NewNode.MaxManip == 0: # No Solution was ever found
+        continue
+    else: # if a solution did exist, append to sparsenodes
+        SparseNodes.append(NewNode)
+
+finishT = time.time()
+print("Time Elapsed = ", finishT-startT)
+
+# endregion
+
+# IK Solve Dense
 # region
 print ("Start IK Solve Loop")
 startT = time.time()
+ClosePointParam = 0.3
 NodeField = []
 HighManip = 0
 for X in WorkspaceGrid:
     Tep = [[1,0,0,X[0]] , [0,1,0,X[1]] , [0,0,1,X[2]] , [0,0,0,1]]
+    
+    # Create a list of list containing distance from node, and node configuration
+    DistSet = []
+    for Node in SparseNodes:
+        Distance = ((X[0] - Node.Position[0])**2 + (X[1] - Node.Position[1])**2 + (X[2] - Node.Position[2])**2)**(1/2)
+        Temp = [Distance, Node.ConfigList]
+        DistSet.append(Temp)
+    DistSet = sorted(DistSet, key = lambda x:x[0]) # Sort sparsenodes to get closest node to task point
+    
+    # If there exists a nearby point in the sparese node list
+    if DistSet[0][0] <= ClosePointParam:
+        #Use the nearest sparsenode config to guess
+        Qguess = DistSet[0][1]
+        solution = pandarobo.ik_LM(Tep, q0 = Qguess,joint_limits = True)
+    else:
+        # Otherwise use a random config to guess
+        solution = pandarobo.ik_LM(Tep,joint_limits = True)
+    
     solution = pandarobo.ik_LM(Tep,joint_limits = True)
     
     # Solutions
@@ -119,10 +171,8 @@ plt.savefig(filename)
 plt.close()
 # endregion
 
-
-
 # Create Scatter Plot for Each Accessible Node
-
+# region
 vmin = 0
 vmax = HighManip
 norm = Normalize(vmin=vmin, vmax = vmax)
@@ -152,12 +202,7 @@ for Zpoint in Zspan:
     plt.draw()
     plt.pause(1)  # Ensure the figure refreshes
     plt.show()
-    filename = f'SRC\RoboToolbox\RoboData\IK_DataSet\IK' + str(round(Zpoint,2)) + 'slice.png'
+    filename = f'SRC\RoboToolbox\RoboData\IK_DataSet\IK' + str(round(Zpoint,2)) + 'sliceFixed.png'
     plt.savefig(filename)
 
-
-
-
-
-
-print("End")
+# endregion
